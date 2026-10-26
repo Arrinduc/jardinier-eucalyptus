@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jardinier vs Eucalyptus</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: linear-gradient(#87ceeb, #e0f7fa);
+    font-family: "Comic Sans MS", "Segoe UI", sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    user-select: none;
+  }
+  h1 { margin: 12px 0 4px; color: #2e7d32; text-shadow: 1px 1px 0 #fff; }
+  #hud { font-size: 18px; color: #33691e; margin-bottom: 6px; }
+  #game {
+    border: 4px solid #5d4037;
+    border-radius: 8px;
+    background: #a5d6a7;
+    display: block;
+    touch-action: none;
+  }
+  #msg {
+    margin-top: 10px; font-size: 16px; color: #5d4037; text-align: center;
+  }
+  button {
+    margin-top: 8px; padding: 8px 16px; font-size: 16px; cursor: pointer;
+    background: #66bb6a; color: white; border: none; border-radius: 6px;
+  }
+  button:hover { background: #43a047; }
+</style>
+</head>
+<body>
+<h1>🌱 Jardinier vs Eucalyptus 🌿</h1>
+<div id="hud">Score : <span id="score">0</span> — Meilleur : <span id="best">0</span></div>
+<canvas id="game" width="640" height="480"></canvas>
+<button id="restart" style="display:none">Rejouer</button>
+<div id="msg">Utilise ← → (ou Q/D) pour bouger. Évite les branches d'eucalyptus ! 🥸</div>
+<script>
+"use strict";
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+const W = canvas.width, H = canvas.height;
+const scoreEl = document.getElementById("score");
+const bestEl = document.getElementById("best");
+const msgEl = document.getElementById("msg");
+const restartBtn = document.getElementById("restart");
+
+const GROUND = H - 50;
+const gardener = { x: W / 2, y: GROUND, w: 34, h: 56, speed: 5.5, dir: 0 };
+let branches = [];
+let score = 0;
+let best = Number(localStorage.getItem("jardinier-best") || 0);
+let running = true;
+let spawnTimer = 0;
+const keys = {};
+
+bestEl.textContent = best;
+
+document.addEventListener("keydown", e => {
+  keys[e.key] = true;
+  if (["ArrowLeft", "ArrowRight"].includes(e.key)) e.preventDefault();
+});
+document.addEventListener("keyup", e => { keys[e.key] = false; });
+
+canvas.addEventListener("pointerdown", e => {
+  const r = canvas.getBoundingClientRect();
+  const x = e.clientX - r.left;
+  gardener.dir = x < r.width / 2 ? -1 : 1;
+});
+canvas.addEventListener("pointerup", () => { gardener.dir = 0; });
+restartBtn.addEventListener("click", reset);
+
+function reset() {
+  branches = [];
+  score = 0;
+  spawnTimer = 0;
+  gardener.x = W / 2;
+  running = true;
+  restartBtn.style.display = "none";
+  msgEl.textContent = "Utilise ← → (ou Q/D) pour bouger. Évite les branches d'eucalyptus ! 🥸";
+}
+
+function spawnBranch() {
+  const len = 40 + Math.random() * 50;
+  branches.push({
+    x: 20 + Math.random() * (W - 40),
+    y: -40,
+    len,
+    angle: Math.random() * Math.PI,
+    spin: (Math.random() - 0.5) * 0.1,
+    speed: 2.2 + Math.random() * 2.2 + Math.min(score / 300, 3)
+  });
+}
+
+function update() {
+  if (!running) return;
+  gardener.dir = 0;
+  if (keys["ArrowLeft"] || keys["q"] || keys["Q"]) gardener.dir -= 1;
+  if (keys["ArrowRight"] || keys["d"] || keys["D"]) gardener.dir += 1;
+  gardener.x = Math.max(gardener.w / 2, Math.min(W - gardener.w / 2, gardener.x + gardener.dir * gardener.speed));
+
+  spawnTimer -= 1;
+  if (spawnTimer <= 0) {
+    spawnBranch();
+    spawnTimer = Math.max(18, 60 - score / 20);
+  }
+
+  for (const b of branches) {
+    b.y += b.speed;
+    b.angle += b.spin;
+    const dx = Math.abs(b.x - gardener.x);
+    const dy = Math.abs(b.y - gardener.y + gardener.h / 2);
+    if (dx < b.len / 2 + gardener.w / 2 - 6 && dy < 8 + gardener.h / 2 - 6) {
+      running = false;
+      if (score > best) {
+        best = score;
+        localStorage.setItem("jardinier-best", best);
+        bestEl.textContent = best;
+      }
+      msgEl.textContent = "Aïe ! Une branche t'a cogné la tête 🤕 — Score final : " + score;
+      restartBtn.style.display = "block";
+    }
+  }
+  branches = branches.filter(b => b.y < H + 60);
+  score += 1;
+  scoreEl.textContent = score;
+}
+
+function drawGardener() {
+  const { x, y, w, h } = gardener;
+  ctx.save();
+  ctx.translate(x, y);
+  // jambes
+  ctx.fillStyle = "#5d4037";
+  ctx.fillRect(-w / 2 + 4, -10, 10, 12);
+  ctx.fillRect(w / 2 - 14, -10, 10, 12);
+  // corps (blouse de jardinage)
+  ctx.fillStyle = "#7cb342";
+  ctx.fillRect(-w / 2 + 2, -h + 18, w - 4, h - 30);
+  // tête
+  ctx.fillStyle = "#ffcc80";
+  ctx.beginPath();
+  ctx.arc(0, -h + 8, 11, 0, Math.PI * 2);
+  ctx.fill();
+  // chapeau de paille
+  ctx.fillStyle = "#d4a95c";
+  ctx.fillRect(-14, -h + 2, 28, 5);
+  ctx.fillRect(-9, -h - 3, 18, 5);
+  // yeux
+  ctx.fillStyle = "#333";
+  ctx.fillRect(-4, -h + 8, 2, 2);
+  ctx.fillRect(2, -h + 8, 2, 2);
+  // bras tendus (panique !)
+  ctx.fillStyle = "#ffcc80";
+  ctx.fillRect(-w / 2 - 6, -h + 24, 8, 4);
+  ctx.fillRect(w / 2 - 2, -h + 24, 8, 4);
+  ctx.restore();
+}
+
+function drawBranch(b) {
+  ctx.save();
+  ctx.translate(b.x, b.y);
+  ctx.rotate(b.angle);
+  ctx.strokeStyle = "#8d6e63";
+  ctx.lineWidth = 5;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(-b.len / 2, 0);
+  ctx.lineTo(b.len / 2, 0);
+  ctx.stroke();
+  // feuilles d'eucalyptus
+  ctx.fillStyle = "#9ccc65";
+  const n = 4;
+  for (let i = 0; i < n; i++) {
+    const px = -b.len / 2 + (b.len / n) * (i + 0.5);
+    ctx.beginPath();
+    ctx.ellipse(px, -4, 5, 9, 0.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(px + 3, 4, 5, 9, -0.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  // sol
+  ctx.fillStyle = "#7cb342";
+  ctx.fillRect(0, GROUND + 10, W, H - GROUND);
+  // eucalyptus en fond
+  ctx.fillStyle = "#a1887f";
+  ctx.fillRect(30, 60, 14, GROUND - 50);
+  ctx.fillRect(W - 60, 90, 14, GROUND - 80);
+  for (const b of branches) drawBranch(b);
+  drawGardener();
+}
+
+function loop() {
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+loop();
+</script>
+</body>
+</html>
