@@ -15,28 +15,29 @@
     min-height: 100vh;
     user-select: none;
   }
-  h1 { margin: 8px 0 2px; color: #2e7d32; text-shadow: 1px 1px 0 #fff; font-size: 22px; text-align: center; }
-  #hud { font-size: 16px; color: #33691e; margin-bottom: 6px; }
+  h1 { margin: 8px 0 2px; color: #2e7d32; text-shadow: 1px 1px 0 #fff; font-size: 26px; text-align: center; }
+  #hud { font-size: 18px; color: #33691e; margin-bottom: 6px; }
   @media (max-width: 500px) {
     body { padding: 0 6px; }
     h1 { font-size: 18px; }
+    #hud { font-size: 15px; }
     #msg { font-size: 13px; }
   }
   #game {
-    border: 4px solid #5d4037;
-    border-radius: 8px;
+    border: 5px solid #5d4037;
+    border-radius: 10px;
     background: #a5d6a7;
     display: block;
     width: 100%;
-    max-width: 640px;
+    max-width: 800px;
     height: auto;
     touch-action: none;
   }
   #msg {
-    margin-top: 10px; font-size: 16px; color: #5d4037; text-align: center;
+    margin-top: 10px; font-size: 17px; color: #5d4037; text-align: center;
   }
   button {
-    margin-top: 8px; padding: 8px 16px; font-size: 16px; cursor: pointer;
+    margin-top: 8px; padding: 8px 18px; font-size: 17px; cursor: pointer;
     background: #66bb6a; color: white; border: none; border-radius: 6px;
   }
   button:hover { background: #43a047; }
@@ -45,7 +46,7 @@
 <body>
 <h1>🌱 Jardinier vs Eucalyptus 🌿</h1>
 <div id="hud">Score : <span id="score">0</span> — Meilleur : <span id="best">0</span></div>
-<canvas id="game" width="640" height="480"></canvas>
+<canvas id="game" width="800" height="600"></canvas>
 <button id="restart" style="display:none">Rejouer</button>
 <div id="msg">📱 Touche la moitié gauche/droite de l'écran pour bouger · ⌨️ ← → ou Q/D · Évite les branches ! 🌿</div>
 <script>
@@ -59,7 +60,7 @@ const msgEl = document.getElementById("msg");
 const restartBtn = document.getElementById("restart");
 
 const GROUND = H - 50;
-const gardener = { x: W / 2, y: GROUND, w: 34, h: 56, speed: 5.5, dir: 0 };
+const gardener = { x: W / 2, y: GROUND, w: 34, h: 56, speed: 6, dir: 0 };
 let branches = [];
 let score = 0;
 let best = Number(localStorage.getItem("jardinier-best") || 0);
