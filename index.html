@@ -182,6 +182,7 @@ function drawBranch(b) {
   ctx.save();
   ctx.translate(b.x, b.y);
   ctx.rotate(b.angle);
+  // branche
   ctx.strokeStyle = "#8d6e63";
   ctx.lineWidth = 5;
   ctx.lineCap = "round";
@@ -189,18 +190,23 @@ function drawBranch(b) {
   ctx.moveTo(-b.len / 2, 0);
   ctx.lineTo(b.len / 2, 0);
   ctx.stroke();
-  // feuilles d'eucalyptus
-  ctx.fillStyle = "#9ccc65";
-  const n = 4;
-  for (let i = 0; i < n; i++) {
-    const px = -b.len / 2 + (b.len / n) * (i + 0.5);
+  // touffe de feuilles rondes au bout de la branche
+  const tipX = b.len / 2;
+  const leaves = [
+    { dx: 2, dy: -11, r: 7 },
+    { dx: 9, dy: -5, r: 6 },
+    { dx: 5, dy: 7, r: 7 },
+    { dx: -3, dy: 9, r: 6 },
+    { dx: -5, dy: -2, r: 6 },
+    { dx: 11, dy: 6, r: 5 }
+  ];
+  const greens = ["#9ccc65", "#aed581", "#8bc34a"];
+  leaves.forEach((l, i) => {
+    ctx.fillStyle = greens[i % greens.length];
     ctx.beginPath();
-    ctx.ellipse(px, -4, 5, 9, 0.5, 0, Math.PI * 2);
+    ctx.arc(tipX + l.dx, l.dy, l.r, 0, Math.PI * 2);
     ctx.fill();
-    ctx.beginPath();
-    ctx.ellipse(px + 3, 4, 5, 9, -0.5, 0, Math.PI * 2);
-    ctx.fill();
-  }
+  });
   ctx.restore();
 }
 
