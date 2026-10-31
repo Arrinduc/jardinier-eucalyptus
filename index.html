@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Jardinier vs Eucalyptus</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -15,13 +15,21 @@
     min-height: 100vh;
     user-select: none;
   }
-  h1 { margin: 12px 0 4px; color: #2e7d32; text-shadow: 1px 1px 0 #fff; }
-  #hud { font-size: 18px; color: #33691e; margin-bottom: 6px; }
+  h1 { margin: 8px 0 2px; color: #2e7d32; text-shadow: 1px 1px 0 #fff; font-size: 22px; text-align: center; }
+  #hud { font-size: 16px; color: #33691e; margin-bottom: 6px; }
+  @media (max-width: 500px) {
+    body { padding: 0 6px; }
+    h1 { font-size: 18px; }
+    #msg { font-size: 13px; }
+  }
   #game {
     border: 4px solid #5d4037;
     border-radius: 8px;
     background: #a5d6a7;
     display: block;
+    width: 100%;
+    max-width: 640px;
+    height: auto;
     touch-action: none;
   }
   #msg {
@@ -39,7 +47,7 @@
 <div id="hud">Score : <span id="score">0</span> — Meilleur : <span id="best">0</span></div>
 <canvas id="game" width="640" height="480"></canvas>
 <button id="restart" style="display:none">Rejouer</button>
-<div id="msg">Utilise ← → (ou Q/D) pour bouger. Évite les branches d'eucalyptus ! 🥸</div>
+<div id="msg">📱 Touche la moitié gauche/droite de l'écran pour bouger · ⌨️ ← → ou Q/D · Évite les branches ! 🌿</div>
 <script>
 "use strict";
 const canvas = document.getElementById("game");
@@ -67,12 +75,19 @@ document.addEventListener("keydown", e => {
 });
 document.addEventListener("keyup", e => { keys[e.key] = false; });
 
-canvas.addEventListener("pointerdown", e => {
+const pointers = new Map();
+function touchDir() {
   const r = canvas.getBoundingClientRect();
-  const x = e.clientX - r.left;
-  gardener.dir = x < r.width / 2 ? -1 : 1;
-});
-canvas.addEventListener("pointerup", () => { gardener.dir = 0; });
+  let dir = 0;
+  for (const x of pointers.values()) dir += x - r.left < r.width / 2 ? -1 : 1;
+  return Math.sign(dir);
+}
+canvas.addEventListener("pointerdown", e => { pointers.set(e.pointerId, e.clientX); e.preventDefault(); });
+canvas.addEventListener("pointermove", e => { if (pointers.has(e.pointerId)) pointers.set(e.pointerId, e.clientX); });
+const releasePointer = e => { pointers.delete(e.pointerId); };
+canvas.addEventListener("pointerup", releasePointer);
+canvas.addEventListener("pointercancel", releasePointer);
+canvas.addEventListener("pointerleave", releasePointer);
 restartBtn.addEventListener("click", reset);
 
 function reset() {
@@ -82,7 +97,7 @@ function reset() {
   gardener.x = W / 2;
   running = true;
   restartBtn.style.display = "none";
-  msgEl.textContent = "Utilise ← → (ou Q/D) pour bouger. Évite les branches d'eucalyptus ! 🥸";
+  msgEl.textContent = "📱 Touche la moitié gauche/droite de l'écran pour bouger · ⌨️ ← → ou Q/D · Évite les branches ! 🌿";
 }
 
 function spawnBranch() {
@@ -99,9 +114,10 @@ function spawnBranch() {
 
 function update() {
   if (!running) return;
-  gardener.dir = 0;
+  gardener.dir = touchDir();
   if (keys["ArrowLeft"] || keys["q"] || keys["Q"]) gardener.dir -= 1;
   if (keys["ArrowRight"] || keys["d"] || keys["D"]) gardener.dir += 1;
+  gardener.dir = Math.sign(gardener.dir);
   gardener.x = Math.max(gardener.w / 2, Math.min(W - gardener.w / 2, gardener.x + gardener.dir * gardener.speed));
 
   spawnTimer -= 1;
@@ -166,6 +182,7 @@ function drawBranch(b) {
   ctx.save();
   ctx.translate(b.x, b.y);
   ctx.rotate(b.angle);
+  // branche
   ctx.strokeStyle = "#8d6e63";
   ctx.lineWidth = 5;
   ctx.lineCap = "round";
@@ -173,19 +190,33 @@ function drawBranch(b) {
   ctx.moveTo(-b.len / 2, 0);
   ctx.lineTo(b.len / 2, 0);
   ctx.stroke();
-  // feuilles d'eucalyptus
-  ctx.fillStyle = "#9ccc65";
-  const n = 4;
-  for (let i = 0; i < n; i++) {
-    const px = -b.len / 2 + (b.len / n) * (i + 0.5);
+  // touffe de feuilles rondes au bout de la branche
+  const tipX = b.len / 2;
+  const leaves = [
+    { dx: 2, dy: -11, r: 7 },
+    { dx: 9, dy: -5, r: 6 },
+    { dx: 5, dy: 7, r: 7 },
+    { dx: -3, dy: 9, r: 6 },
+    { dx: -5, dy: -2, r: 6 },
+    { dx: 11, dy: 6, r: 5 }
+  ];
+  const greens = ["#9ccc65", "#aed581", "#8bc34a"];
+  leaves.forEach((l, i) => {
+    ctx.fillStyle = greens[i % greens.length];
     ctx.beginPath();
-    ctx.ellipse(px, -4, 5, 9, 0.5, 0, Math.PI * 2);
+    ctx.arc(tipX + l.dx, l.dy, l.r, 0, Math.PI * 2);
     ctx.fill();
-    ctx.beginPath();
-    ctx.ellipse(px + 3, 4, 5, 9, -0.5, 0, Math.PI * 2);
-    ctx.fill();
-  }
+  });
   ctx.restore();
+}
+
+function drawTouchHint() {
+  ctx.fillStyle = "rgba(255,255,255,0.35)";
+  const y = GROUND + 34;
+  ctx.beginPath();
+  ctx.moveTo(30, y - 12); ctx.lineTo(30, y + 12); ctx.lineTo(48, y); ctx.closePath(); ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(W - 30, y - 12); ctx.lineTo(W - 30, y + 12); ctx.lineTo(W - 48, y); ctx.closePath(); ctx.fill();
 }
 
 function draw() {
@@ -199,6 +230,7 @@ function draw() {
   ctx.fillRect(W - 60, 90, 14, GROUND - 80);
   for (const b of branches) drawBranch(b);
   drawGardener();
+  if (pointers.size > 0 || matchMedia("(pointer: coarse)").matches) drawTouchHint();
 }
 
 function loop() {
