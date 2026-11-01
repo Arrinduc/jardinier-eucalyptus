@@ -326,6 +326,14 @@ function draw() {
   // sol
   ctx.fillStyle = "#7cb342";
   ctx.fillRect(0, GROUND + 10, W, H - GROUND);
+  // logo du Domaine du Rayol en filigrane au centre du jeu
+  if (rayolLogo.complete && rayolLogo.naturalWidth > 0) {
+    ctx.save();
+    ctx.globalAlpha = 0.12;
+    const lw = 340, lh = lw * 53.2 / 52;
+    ctx.drawImage(rayolLogo, W / 2 - lw / 2, H / 2 - lh / 2 - 20, lw, lh);
+    ctx.restore();
+  }
   // eucalyptus en fond
   drawBackgroundEucalyptus(30, 60, 14);
   drawBackgroundEucalyptus(W - 60, 90, 14);
